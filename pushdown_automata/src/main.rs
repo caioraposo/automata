@@ -6,64 +6,44 @@ use std::collections::HashMap;
 /// e valores associados: (desempilhar, proximo_estado, andar_para)
 /// A linguagem será validada se a pilha estiver vazia
 fn main() {
+    let initial_state = "q0";
+    let final_state = "q0";
     // Read input file and ignore empty spaces
-    let tape = include_str!("../input")
+    let tape: Vec<char> = include_str!("../input")
         .trim()
         .chars()
         .filter(|x| *x != ' ')
         .collect();
 
-    let initial_state = "q0";
-    let final_state = "q0";
-    let mut PDA = HashMap::new();
-    // estado_atual char_lido   desempilhar prox_estado empilhar
-    PDA.insert(("q0", 'a'), (' ', "q0", ' '));
-    PDA.insert(("q0", 'b'), (' ', "q0", ' '));
-    PDA.insert(("q0", 'e'), (' ', "q2", 'E'));
-    PDA.insert(("q0", 'i'), (' ', "q1", 'C'));
-    PDA.insert(("q0", 'u'), ('U', "q2", ' '));
-    PDA.insert(("q0", 'r'), (' ', "q5", 'U'));
+    let mut pda = HashMap::new();
+    let pda_file = include_str!("../pda");
+    let lines: Vec<Vec<&str>> = pda_file
+        .lines()
+        .map(|l| l.split(" ").collect())
+        .collect();
 
-    PDA.insert(("q1", 'a'), (' ', "q1", ' '));
-    PDA.insert(("q1", 'b'), (' ', "q1", ' '));
-    PDA.insert(("q1", ';'), (' ', "q1", ' '));
-    PDA.insert(("q1", 't'), ('C', "q0", ' '));
-
-    PDA.insert(("q2", '['), (' ', "q2", 'B'));
-    PDA.insert(("q2", 'x'), (' ', "q3", ' '));
-    PDA.insert(("q2", 'y'), (' ', "q3", ' '));
-
-    PDA.insert(("q3", ']'), ('B', "q3", ' '));
-    PDA.insert(("q3", '+'), (' ', "q4", ' '));
-    PDA.insert(("q3", 'r'), (' ', "q5", 'U'));
-    PDA.insert(("q3", 'f'), ('E', "q5", ' '));
-    PDA.insert(("q3", 'a'), (' ', "q0", ' '));
-    PDA.insert(("q3", 'b'), (' ', "q0", ' '));
-    PDA.insert(("q3", 'i'), (' ', "q1", 'C'));
-
-    PDA.insert(("q4", '['), (' ', "q4", 'B'));
-    PDA.insert(("q4", 'x'), (' ', "q3", ' '));
-    PDA.insert(("q4", 'y'), (' ', "q3", ' '));
-
-    // Duplicate from q3
-    PDA.insert(("q5", 'a'), (' ', "q0", ' '));
-    PDA.insert(("q5", 'b'), (' ', "q0", ' '));
-    PDA.insert(("q5", 'i'), (' ', "q1", 'C'));
-    
-    compute(tape, PDA, initial_state, final_state, 0);
+    println!("Pushdown Automata:");
+    println!("estado_atual char_lido   desempilhar prox_estado empilhar");
+    for line in lines.iter() {
+        println!("{:?}", line);
+        pda.insert((line[0], line[1].chars().next().unwrap()),
+                   (line[2].chars().next().unwrap(), line[3],
+                        line[4].chars().next().unwrap()));
+    }
+    compute(tape, pda, initial_state, final_state, 0);
 }
 
 // Será imprimido:
 // [fita]
 // <estado_atual> <posicao_na_fita> <ação>
 //
-// Ex: [' ', 'A', 'A', 'B', 'b', ' ']
+// Ex: ['A', 'A', 'B', 'b']
 //     "q1" 3 ('B', "q1", Right)
 fn compute(
-    mut tape: Vec<char>,
-    PDA: HashMap<(&str, char), (char, &str, char)>,
+    tape: Vec<char>,
+    pda: HashMap<(&str, char), (char, &str, char)>,
     initial_state: &str,
-    final_state: &str,
+    _final_state: &str,
     start_from: usize,
 ) {
     let mut stack = Vec::new();
@@ -72,16 +52,16 @@ fn compute(
     let mut current_char = tape[pos];
 
     // Enquanto houver transicao entre o estado atual e o próximo
-    while let Some(transition) = PDA.get(&(current_state, current_char)) {
+    while let Some(transition) = pda.get(&(current_state, current_char)) {
         println!("{:?}", tape);
         println!("{:?} {} {:?}", current_state, pos, transition);
         println!("Pilha: {:?}", stack);
 
         current_state = transition.1;
-        if transition.0 != ' ' {
+        if transition.0 != 'λ' {
             stack.pop();
         }
-        if transition.2 != ' ' {
+        if transition.2 != 'λ' {
             stack.push(transition.2);
         }
         pos += 1;
@@ -93,7 +73,7 @@ fn compute(
         println!();
     }
     println!();
-    if stack.len() == 0 {
+    if stack.is_empty() {
         println!("Aceita!");
     } else {
         println!("Não aceita! pilha: {:?}", stack);
